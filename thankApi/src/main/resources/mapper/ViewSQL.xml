@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding= "UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="ViewSQL">
+	
+	<select id="selectGalleryList" parameterType="java.util.HashMap"  resultType="java.util.HashMap"><![CDATA[
+SELECT   T.*
+       , ROW_NUMBER() OVER(ORDER BY ${ORDER} ${ORDER_RN}, T.GALLERY_SEQ ASC) AS RN
+FROM     (SELECT GL.GALLERY_SEQ
+               , GL.AUTHOR
+               , GL.TYPE
+               , GL.DEL_YN
+               , GL.REG_DATE
+               , GL.TAG
+               , GL.LANG
+               , GL.VIEW_COUNT
+               , GL.LIKE_CNT
+               , GD.FILE_PATH
+               , GD.FILE_NAME
+               , (SELECT COUNT(*)
+                 FROM    GALLERY_DETAIL S1
+                 WHERE   S1.GALLERY_SEQ = GL.GALLERY_SEQ
+                 )
+                 CNT
+         FROM    GALLERY GL
+               , GALLERY_DETAIL GD
+         WHERE   GL.DEL_YN      = 'N'
+         AND     GL.GALLERY_SEQ = GD.GALLERY_SEQ
+         AND     GD.PAGE_SEQ    = 1
+	]]><if test="SEARCH_KEYWORD != null and SEARCH_KEYWORD !=''">
+	AND (
+	GL.AUTHOR LIKE '%${SEARCH_KEYWORD}%'
+	)
+	</if><![CDATA[
+	) T
+ORDER BY ${ORDER} ${ORDER_FLAG}, T.GALLERY_SEQ DESC
+		LIMIT ${PAGE_NUM},${PAGE_SIZE}
+	]]></select>
+	
+	<select id="selectGalleryCnt" parameterType="java.util.HashMap"  resultType="int"><![CDATA[
+SELECT COUNT(*) FROM(
+	SELECT   GL.GALLERY_SEQ
+	       , GL.AUTHOR
+	       , GL.TYPE
+	       , GL.DEL_YN
+	       , GL.REG_DATE
+	       , GL.TAG
+	       , GL.LANG
+	       , GL.VIEW_COUNT
+	       , GL.LIKE_CNT
+	       , GD.FILE_PATH
+	       , GD.FILE_NAME
+	FROM     GALLERY GL
+	       , GALLERY_DETAIL GD
+	WHERE    GL.DEL_YN      = 'N'
+	AND      GL.GALLERY_SEQ = GD.GALLERY_SEQ
+	AND      GD.PAGE_SEQ    = 1 
+	]]><if test="SEARCH_KEYWORD != null and SEARCH_KEYWORD !=''">
+	AND (
+	GL.AUTHOR LIKE '%${SEARCH_KEYWORD}%'
+	)
+	</if><![CDATA[
+	) T
+	]]></select>
+	
+
+	<select id="selectGallerySeq" parameterType="java.util.HashMap" resultType="int"><![CDATA[
+SELECT IFNULL(MAX(S1.GALLERY_SEQ), 0) + 1 AS GALLERY_SEQ FROM GALLERY S1
+	]]>
+	</select>
+	
+	<insert id="insertGallery" parameterType="java.util.HashMap"><![CDATA[
+/* 갤러리 조회 */
+INSERT
+	INTO GALLERY
+       (
+              GALLERY_SEQ,
+              AUTHOR,
+              TYPE,
+              DEL_YN,
+              REG_DATE,
+              TAG,
+              LANG,
+              VIEW_COUNT,
+              LIKE_CNT
+       )
+       VALUES
+       (	    #{GALLERY_SEQ}
+              , #{AUTHOR}
+              , 0
+              , 'N'
+              , #{REG_DATE}
+              , #{TAG}
+              , #{LANG}
+              , 0
+              , 0
+       )
+	]]></insert>
+	
+	<insert id="insertGalleryDetail" parameterType="java.util.HashMap"><![CDATA[
+/* 갤러리 상세 조회 */
+INSERT
+	INTO GALLERY_DETAIL
+       (
+              GALLERY_SEQ,
+              PAGE_SEQ,
+              FILE_PATH,
+              FILE_NAME,
+              FILE_ETC
+       )
+       VALUES
+       (        #{GALLERY_SEQ}
+              , #{PAGE_SEQ}
+              , #{FILE_PATH}
+              , #{FILE_NAME}
+              , #{FILE_ETC}
+       )
+	]]></insert>
+	
+	<select id="selectGalleryDetail" parameterType="java.util.HashMap"  resultType="java.util.HashMap"><![CDATA[
+SELECT GD.GALLERY_SEQ
+     , GD.PAGE_SEQ
+     , GD.FILE_PATH
+     , GD.FILE_NAME
+     , GD.FILE_ETC
+FROM   GALLERY_DETAIL GD
+WHERE  GD.GALLERY_SEQ = #{GALLERY_SEQ}
+	]]></select>
+	
+	<select id="selectGalleryAuthList" parameterType="java.util.HashMap" resultType="java.util.HashMap"><![CDATA[
+SELECT A.AUTHOR
+     , A.GALLERY_SEQ
+     , CAST(
+              (SELECT COUNT(*)
+              FROM    GALLERY_DETAIL S1
+              WHERE   S1.GALLERY_SEQ = A.GALLERY_SEQ
+              )
+            AS INTEGER) AS CNT
+FROM   GALLERY A
+	]]></select>
+	
+	<delete id="deleteGalleryDetail" parameterType="java.util.HashMap">
+DELETE FROM GALLERY_DETAIL WHERE GALLERY_SEQ = #{GALLERY_SEQ}
+	</delete>
+	
+	<delete id="deleteGallery" parameterType="java.util.HashMap">
+DELETE FROM GALLERY WHERE GALLERY_SEQ = #{GALLERY_SEQ}
+	</delete>
+	
+</mapper>
